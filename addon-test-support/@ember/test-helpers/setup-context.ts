@@ -27,6 +27,7 @@ export interface TestContext extends BaseContext {
 
   pauseTest(): Promise<void>;
   resumeTest(): Promise<void>;
+  stepTest(): Promise<void>;
 }
 
 // eslint-disable-next-line require-jsdoc
@@ -130,6 +131,24 @@ export function resumeTest(): void {
   }
 
   context.resumeTest();
+}
+
+/**
+  Begins step through for a test previously paused by `await pauseTest()`
+  and sets up step through debugging for settled promisses.
+
+  @public
+*/
+export function stepTest(): void {
+  let context = getContext();
+
+  if (!context || !isTestContext(context)) {
+    throw new Error(
+      'Cannot call `stepTest` without having first called `setupTest` or `setupRenderingTest`.'
+    );
+  }
+
+  context.stepTest();
 }
 
 export const CLEANUP = Object.create(null);
@@ -250,16 +269,27 @@ export default function setupContext(
       let resume: Function | undefined;
       context.resumeTest = function resumeTest() {
         assert('Testing has not been paused. There is nothing to resume.', Boolean(resume));
+        context.shouldStepTest = false;
         (resume as Function)();
         global.resumeTest = resume = undefined;
+        global.stepTest = resume = undefined;
+      };
+
+      context.stepTest = function stepTest() {
+        assert('Testing has not been paused. There is nothing to resume.', Boolean(resume));
+        context.shouldStepTest = true;
+        (resume as Function)();
+        global.resumeTest = resume = undefined;
+        global.stepTest = resume = undefined;
       };
 
       context.pauseTest = function pauseTest() {
-        console.info('Testing paused. Use `resumeTest()` to continue.'); // eslint-disable-line no-console
+        console.info('Testing paused. Use `resumeTest()` or `stepTest()` to continue.'); // eslint-disable-line no-console
 
         return new Promise(resolve => {
           resume = resolve;
           global.resumeTest = resumeTest;
+          global.stepTest = stepTest;
         }, 'TestAdapter paused promise');
       };
 

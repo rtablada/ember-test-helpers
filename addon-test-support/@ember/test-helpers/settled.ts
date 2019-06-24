@@ -7,6 +7,7 @@ import waitUntil from './wait-until';
 import { hasPendingTransitions } from './setup-application-context';
 import { hasPendingWaiters } from 'ember-test-waiters';
 import DebugInfo, { TestDebugInfo } from './-internal/debug-info';
+import { getContext } from './setup-context';
 
 // Ember internally tracks AJAX requests in the same way that we do here for
 // legacy style "acceptance" tests using the `ember-testing.js` asset provided
@@ -238,10 +239,20 @@ export function isSettled(): boolean {
 /**
   Returns a promise that resolves when in a settled state (see `isSettled` for
   a definition of "settled state").
+  If context is set to step through then this will call `context.pauseTest`
+  to allow step through debugging of steps using @ember/test-helpers.
 
   @public
   @returns {Promise<void>} resolves when settled
 */
 export default function settled(): Promise<void> {
-  return waitUntil(isSettled, { timeout: Infinity }).then(() => {});
+  return waitUntil(isSettled, { timeout: Infinity }).then(() => {
+    let context = getContext();
+
+    if (context && context.shouldStepTest) {
+      return pauseTest().then(() => Promise.resolve());
+    }
+
+    return Promise.resolve();
+  });
 }

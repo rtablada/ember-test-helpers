@@ -6,6 +6,7 @@ import {
   getContext,
   pauseTest,
   resumeTest,
+  stepTest,
   setApplication,
   setResolver,
 } from '@ember/test-helpers';
@@ -210,7 +211,7 @@ module('setupContext', function(hooks) {
         await promise;
       });
 
-      test('pauseTest sets up a window.resumeTest to easily resume', async function(assert) {
+      test('pauseTest sets up window.resumeTest and window.stepTest to easily resume', async function(assert) {
         assert.equal(window.resumeTest, undefined, 'precond - starts out as undefined');
 
         let promise = context.pauseTest();
@@ -220,6 +221,8 @@ module('setupContext', function(hooks) {
           window.resumeTest,
           'window.resumeTest is the same as this.resumeTest'
         );
+
+        assert.equal(stepTest, window.stepTest, 'window.stepTest is the same as this.stepTest');
 
         context.resumeTest();
 
